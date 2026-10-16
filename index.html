@@ -1,0 +1,262 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JAVIRUS AI</title>
+
+  <script src="https://js.puter.com/v2/"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #080b12;
+      color: #f5f7ff;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 760px;
+      height: 85vh;
+      min-height: 480px;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #283247;
+      border-radius: 20px;
+      overflow: hidden;
+      background: #101522;
+      box-shadow: 0 0 40px #0008;
+    }
+
+    header {
+      padding: 22px;
+      border-bottom: 1px solid #283247;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .brand {
+      font-size: 23px;
+      font-weight: 800;
+      letter-spacing: 3px;
+      color: #a9c7ff;
+    }
+
+    .status {
+      font-size: 12px;
+      color: #8ecca9;
+      margin-top: 6px;
+    }
+
+    button {
+      cursor: pointer;
+      border: 1px solid #34425e;
+      border-radius: 10px;
+      padding: 10px 13px;
+      background: #1a2335;
+      color: white;
+    }
+
+    #chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .message {
+      max-width: 85%;
+      padding: 13px 15px;
+      border-radius: 14px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .bot {
+      align-self: flex-start;
+      background: #1b2436;
+      border: 1px solid #2a3852;
+    }
+
+    .user {
+      align-self: flex-end;
+      background: #294d83;
+    }
+
+    .composer {
+      display: flex;
+      gap: 10px;
+      padding: 16px;
+      border-top: 1px solid #283247;
+    }
+
+    input {
+      flex: 1;
+      min-width: 0;
+      padding: 14px;
+      border: 1px solid #34425e;
+      border-radius: 12px;
+      background: #090e18;
+      color: white;
+      outline: none;
+    }
+
+    #send {
+      background: #a9c7ff;
+      color: #08101e;
+      font-weight: bold;
+      padding: 0 20px;
+    }
+
+    #send:disabled {
+      opacity: 0.5;
+      cursor: wait;
+    }
+
+    .note {
+      padding: 0 16px 12px;
+      text-align: center;
+      color: #8995aa;
+      font-size: 11px;
+    }
+
+    @media (max-width: 500px) {
+      .app { height: 90vh; }
+      header { padding: 16px; }
+      .brand { font-size: 19px; }
+      #chat { padding: 14px; }
+      .message { max-width: 95%; }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <header>
+      <div>
+        <div class="brand">JAVIRUS AI</div>
+        <div class="status">● Your AI assistant</div>
+      </div>
+      <button id="newChat" type="button">New chat</button>
+    </header>
+
+    <section id="chat" aria-live="polite">
+      <div class="message bot">Hello! I'm JAVIRUS, your AI assistant. ✨
+
+Ask me a question, get help with coding, or brainstorm your next idea. What shall we work on?</div>
+    </section>
+
+    <form id="form" class="composer">
+      <input
+        id="prompt"
+        type="text"
+        placeholder="Message JAVIRUS..."
+        autocomplete="off"
+        required
+      >
+      <button id="send" type="submit">Send</button>
+    </form>
+
+    <div class="note">AI can make mistakes. Don't share passwords or private information.</div>
+  </main>
+
+  <script>
+    const chat = document.getElementById("chat");
+    const form = document.getElementById("form");
+    const input = document.getElementById("prompt");
+    const sendButton = document.getElementById("send");
+    const newChatButton = document.getElementById("newChat");
+
+    const conversation = [
+      {
+        role: "system",
+        content: "You are JAVIRUS, a helpful, friendly AI assistant created for the JAVIRUS project. Give clear, useful answers. Help with learning, coding, research, and brainstorming. Be honest when you are unsure."
+      }
+    ];
+
+    function addMessage(text, sender) {
+      const message = document.createElement("div");
+      message.className = "message " + sender;
+      message.textContent = text;
+      chat.appendChild(message);
+      chat.scrollTop = chat.scrollHeight;
+      return message;
+    }
+
+    form.addEventListener("submit", async function(event) {
+      event.preventDefault();
+
+      const text = input.value.trim();
+      if (!text || sendButton.disabled) return;
+
+      addMessage(text, "user");
+      input.value = "";
+      sendButton.disabled = true;
+      sendButton.textContent = "...";
+
+      conversation.push({ role: "user", content: text });
+      const waiting = addMessage("JAVIRUS is thinking...", "bot");
+
+      try {
+        const response = await puter.ai.chat(conversation, {
+          model: "gpt-5.4-nano"
+        });
+
+        let answer = "";
+
+        if (typeof response === "string") {
+          answer = response;
+        } else if (response && response.message &&
+                   response.message.content) {
+          const content = response.message.content;
+          answer = Array.isArray(content)
+            ? content.map(part => part.text || "").join("")
+            : String(content);
+        } else {
+          answer = JSON.stringify(response);
+        }
+
+        waiting.textContent = answer || "I couldn't generate a reply. Please try again.";
+        conversation.push({ role: "assistant", content: answer });
+
+      } catch (error) {
+        conversation.pop();
+
+        waiting.textContent =
+          "I couldn't connect to the AI service.\n\n" +
+          "Please try again. If this continues, check your internet connection " +
+          "and browser console for the error.\n\n" +
+          "Details: " + (error.message || String(error));
+      } finally {
+        sendButton.disabled = false;
+        sendButton.textContent = "Send";
+        input.focus();
+      }
+    });
+
+    newChatButton.addEventListener("click", function() {
+      conversation.splice(1);
+      chat.replaceChildren();
+
+      addMessage(
+        "New chat started! Hello, I'm JAVIRUS. What can I help you with?",
+        "bot"
+      );
+    });
+  </script>
+</body>
+</html>
